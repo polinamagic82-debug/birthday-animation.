@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Happy Birthday 🎈</title>
+
+<style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    overflow: hidden;
+    background: #ffe0eb;
+    font-family: Arial, sans-serif;
+}
+
+canvas {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+}
+
+button {
+    position: fixed;
+    bottom: 25px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 14px 28px;
+    border: none;
+    border-radius: 30px;
+    background: #b58bd6;
+    color: white;
+    font-size: 17px;
+    font-weight: bold;
+    box-shadow: 0 5px 15px #ad78b855;
+    cursor: pointer;
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="canvas"></canvas>
+<button onclick="restart()">🎈 Повторить</button>
+
+<script>
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+const FONT = {
+ H:["10001","10001","10001","11111","10001","10001","10001"],
+ A:["01110","10001","10001","11111","10001","10001","10001"],
+ P:["11110","10001","10001","11110","10000","10000","10000"],
+ Y:["10001","10001","01010","00100","00100","00100","00100"],
+ B:["11110","10001","10001","11110","10001","10001","11110"],
+ I:["11111","00100","00100","00100","00100","00100","11111"],
+ R:["11110","10001","10001","11110","10100","10010","10001"],
+ T:["11111","00100","00100","00100","00100","00100","00100"],
+ D:["11110","10001","10001","10001","10001","10001","11110"]
+};
+
+const COLORS = [
+ "#a9d8ff",
+ "#b9a1ed",
+ "#a8e4ce",
+ "#ffc49f",
+ "#f59fbd",
+ "#f7d58c",
+ "#91d8dc",
+ "#d8b0ec"
+];
+
+let balloons = [];
+let stars = [];
+let startTime = 0;
+
+function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    canvas.width = innerWidth * dpr;
+    canvas.height = innerHeight * dpr;
+
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+    createStars();
+    createBalloons();
+}
+
+function createStars() {
+    stars = [];
+
+    for (let i = 0; i < 65; i++) {
+        stars.push({
+            x: Math.random() * innerWidth,
+            y: Math.random() * innerHeight,
+            size: Math.random() * 2 + 1,
+            phase: Math.random() * 6
+        });
+    }
+}
+
+function createWord(word, centerY, cell) {
+    const width = word.length * 6 * cell - cell;
+    const startX = (innerWidth - width) / 2;
+
+    word.split("").forEach((letter, i) => {
+        const pattern = FONT[letter];
+
+        for (let row = 0; row < 7; row++) {
+            for (let col = 0; col < 5; col++) {
+
+                if (pattern[row][col] !== "1") continue;
+
+                const x = startX + (i * 6 + col) * cell;
+                const y = centerY + row * cell;
+
+                balloons.push({
+                    x,
+                    y,
+                    startX: Math.random() * innerWidth,
+                    startY: innerHeight + Math.random() * 300,
+                    color: COLORS[
+                        Math.floor(Math.random() * COLORS.length)
+                    ],
+                    size: cell * (0.82 + Math.random() * 0.1),
+                    delay: Math.random() * 2200,
+                    phase: Math.random() * 6
+                });
+            }
+        }
+    });
+}
+
+function createBalloons() {
+    balloons = [];
+
+    const cell = Math.min(
+        19,
+        (innerWidth - 25) / 47
+    );
+
+    const totalHeight = 17 * cell;
+    const top = (innerHeight - totalHeight) / 2 - 10;
+
+    createWord("HAPPY", top, cell);
+    createWord("BIRTHDAY", top + 9 * cell, cell);
+
+    startTime = performance.now();
+}
+
+function background(time) {
+    ctx.fillStyle = "#ffe0eb";
+    ctx.fillRect(0, 0, innerWidth, innerHeight);
+
+    stars.forEach(s => {
+        const alpha = 0.25 + 0.55 *
+            Math.abs(Math.sin(time / 700 + s.phase));
+
+        ctx.fillStyle = rgba(255,255,255,${alpha});
+
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+        ctx.fill();
+    });
+}
+
+function drawBalloon(x, y, color, size, time) {
+    ctx.save();
+
+    const float = Math.sin(time / 500 + x) * 1.2;
+
+    y += float;
+
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 5;
+
+    ctx.fillStyle = color;
+    ctx.beginPath();
+
+    ctx.ellipse(
+        x, y, size * 0.48, size * 0.62,
+        -0.12, 0, Math.PI * 2
+    );
+
+    ctx.fill();
+
+    // Блик
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "rgba(255,255,255,0.75)";
+
+    ctx.beginPath();
+    ctx.ellipse(
+        x - size * 0.17,
+        y - size * 0.2,
+        size * 0.1,
+        size * 0.2,
+        -0.3, 0, Math.PI * 2
+    );
+    ctx.fill();
+
+    // Узелок
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(x - 2, y + size * 0.55);
+    ctx.lineTo(x + 2, y + size * 0.55);
+    ctx.lineTo(x, y + size * 0.72);
+    ctx.fill();
+
+    // Ниточка
+    ctx.strokeStyle = "rgba(100,90,120,0.55)";
+    ctx.lineWidth = 0.8;
+
+    ctx.beginPath();
+    ctx.moveTo(x, y + size * 0.7);
+    ctx.quadraticCurveTo(
+        x + 3, y + size * 1.2,
+        x, y + size * 1.5
+    );
+    ctx.stroke();
+
+    ctx.restore();
+}
+
+function animate(time) {
+    background(time);
+
+    const elapsed = time - startTime;
+
+    balloons.forEach(b => {
+        const progress = Math.max(
+            0,
+            Math.min(1, (elapsed - b.delay) / 1700)
+        );
+
+        if (progress <= 0) return;
+
+        const ease = 1 - Math.pow(1 - progress, 3);
+
+        const x = b.startX + (b.x - b.startX) * ease;
+        const y = b.startY + (b.y - b.startY) * ease;
+
+        ctx.globalAlpha = Math.min(1, progress * 1.5);
+
+        drawBalloon(
+            x,
+            y,
+            b.color,
+            b.size * Math.min(1, progress * 1.4),
+            time
+        );
+
+        ctx.globalAlpha = 1;
+    });
+
+    requestAnimationFrame(animate);
+}
+
+function restart() {
+    createBalloons();
+}
+
+window.addEventListener("resize", resize);
+
+resize();
+requestAnimationFrame(animate);
+
+</script>
+</body>
+</html>
